@@ -6,18 +6,18 @@ import * as Photos from './services/photos';
 import { Photo } from './types/Photo';
 
 const App = () => {
-  const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
 
   useEffect(() => {
-    const getPhotos = async () => {
-      setLoading(true);
-      setPhotos(await Photos.getAll());
-      setLoading(false);
-    }
     getPhotos();
-  }, [])
+  }, []);
+
+  const getPhotos = async () => {
+    setLoading('Carregando...');
+    setPhotos(await Photos.getAll());
+    setLoading('');
+  }
 
   const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,9 +26,9 @@ const App = () => {
     const file = formData.get('image') as File;
 
     if(file && file.size > 0) {
-      setUploading(true);
+      setLoading('Enviando...');
       let result = await Photos.insert(file);
-      setUploading(false);
+      setLoading('');
 
       if(result instanceof Error) {
         alert(`${result.name} - ${result.message}`);
@@ -40,11 +40,15 @@ const App = () => {
     }
   }
 
-  if(loading) {
-    return <Loading />
+  const handleDeleteClick = async (name: string) => {
+    setLoading('Deletando...');
+    await Photos.deletePhoto(name);
+    setLoading('');
+    getPhotos();
   }
-  if(uploading) {
-    return <Loading text='Enviando...' />
+
+  if(loading !== '') {
+    return <Loading text={loading} />
   }
   return (
     <C.Container>
@@ -66,7 +70,11 @@ const App = () => {
           <C.PhotoList>
             {React.Children.toArray(
               photos?.map((photo) => (
-                <PhotoItem name={photo.name} url={photo.url} />
+                <PhotoItem
+                  name={photo.name}
+                  url={photo.url}
+                  onDelete={handleDeleteClick}
+                />
               ))
             )}
           </C.PhotoList>
